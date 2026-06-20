@@ -19,8 +19,8 @@ export default async function RootLayout({
   // If not logged in, render without Sidebar wrapper (e.g. for Login/Register)
   if (!token) {
     return (
-      <html lang="en">
-        <body>
+      <html lang="en" suppressHydrationWarning>
+        <body suppressHydrationWarning>
           {children}
         </body>
       </html>
@@ -28,8 +28,8 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <div className="app-container">
           <Sidebar />
           <main className="main-content">

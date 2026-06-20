@@ -7,11 +7,11 @@ const JWT_SECRET = process.env.JWT_SECRET || "lifetracker-jwt-secret-session-key
 
 export async function POST(request: Request) {
   try {
-    const { name, age, email, password } = await request.json();
+    const { name, dob, email, password, avatar } = await request.json();
 
-    if (!name || !age || !email || !password) {
+    if (!name || !dob || !email || !password) {
       return NextResponse.json(
-        { error: "Please fill in all fields (Name, Age, Email, Password)." },
+        { error: "Please fill in all fields (Name, Date of Birth, Email, Password)." },
         { status: 400 }
       );
     }
@@ -42,7 +42,8 @@ export async function POST(request: Request) {
     const newUser = {
       uid: userDocRef.id,
       name: name.trim(),
-      age: parseInt(age, 10) || 18,
+      dob: dob.trim(), // YYYY-MM-DD
+      avatar: avatar ? avatar.trim() : "1.png", // e.g. "1.png"
       email: email.toLowerCase().trim(),
       passwordHash,
       createdAt: new Date().toISOString(),

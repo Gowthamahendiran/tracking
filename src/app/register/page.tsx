@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Eye, EyeOff, Lock, Mail, User, Calendar } from "lucide-react";
 
 export default function Register() {
   const [name, setName] = useState("");
-  const [age, setAge] = useState("");
+  const [dob, setDob] = useState("");
   const [email, setEmail] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState("1.png");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +32,7 @@ export default function Register() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, age, email, password }),
+        body: JSON.stringify({ name, dob, email, password, avatar: selectedAvatar }),
       });
 
       const data = await res.json();
@@ -40,7 +42,6 @@ export default function Register() {
       }
 
       // Registration success, redirect to dashboard.
-      // We use window.location.href to trigger a full refresh so RootLayout picks up the new cookie
       window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
@@ -50,7 +51,7 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-container">
+    <div className="auth-container" style={{ minHeight: "100vh", padding: "40px 20px" }}>
       <div className="auth-card" style={{ maxWidth: "480px" }}>
         <div className="auth-header">
           <h1 className="auth-title">Create account</h1>
@@ -60,6 +61,28 @@ export default function Register() {
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
+          {/* Avatar Selector */}
+          <div className="form-group">
+            <label className="form-label">Select Avatar</label>
+            <div className="avatar-selector">
+              {["1.png", "2.png", "3.png", "4.png", "5.png", "6.png"].map((av) => (
+                <div
+                  key={av}
+                  className={`avatar-option ${selectedAvatar === av ? "selected" : ""}`}
+                  onClick={() => setSelectedAvatar(av)}
+                >
+                  <Image
+                    src={`/Avatar/${av}`}
+                    alt={`Avatar ${av}`}
+                    width={50}
+                    height={50}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="form-group">
             <label className="form-label">Full Name</label>
             <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
@@ -77,16 +100,15 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Age</label>
+            <label className="form-label">Date of Birth (DOB)</label>
             <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
               <Calendar size={16} style={{ position: "absolute", left: "12px", color: "var(--text-light)" }} />
               <input
-                type="number"
-                placeholder="Enter your age"
+                type="date"
                 className="form-input"
                 style={{ paddingLeft: "36px" }}
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
                 required
               />
             </div>

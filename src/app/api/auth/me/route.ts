@@ -5,6 +5,22 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "lifetracker-jwt-secret-session-key-998877";
 
+function calculateAge(dobString: string): number {
+  if (!dobString) return 25;
+  try {
+    const today = new Date();
+    const birthDate = new Date(dobString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return isNaN(age) ? 25 : age;
+  } catch (e) {
+    return 25;
+  }
+}
+
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -30,23 +46,51 @@ export async function GET() {
 
     if (!adminDb) {
       return NextResponse.json(
-        { user: { name: decoded.name, email: decoded.email, age: 25 } },
+        { 
+          user: { 
+            name: decoded.name, 
+            email: decoded.email, 
+            dob: "2001-05-15", 
+            avatar: "1.png", 
+            age: 25 
+          } 
+        },
         { status: 200 }
       );
     }
 
-    // Optional: fetch user data from Firestore to get most up-to-date age / name
+    // Fetch user data from Firestore
     const userDoc = await adminDb.collection("users").doc(decoded.uid).get();
     if (userDoc.exists) {
       const data = userDoc.data()!;
+      const dob = data.dob || "2001-05-15";
+      const avatar = data.avatar || "1.png";
+      const age = calculateAge(dob);
+
       return NextResponse.json(
-        { user: { name: data.name, email: data.email, age: data.age } },
+        { 
+          user: { 
+            name: data.name, 
+            email: data.email, 
+            dob: dob, 
+            avatar: avatar, 
+            age: age 
+          } 
+        },
         { status: 200 }
       );
     }
 
     return NextResponse.json(
-      { user: { name: decoded.name, email: decoded.email, age: 25 } },
+      { 
+        user: { 
+          name: decoded.name, 
+          email: decoded.email, 
+          dob: "2001-05-15", 
+          avatar: "1.png", 
+          age: 25 
+        } 
+      },
       { status: 200 }
     );
   } catch (error: any) {
