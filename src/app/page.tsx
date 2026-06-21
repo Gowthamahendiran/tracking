@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getEntries, calculateStats, HabitEntry } from "@/lib/db";
+import { calculateStats, HabitEntry } from "@/lib/db";
 import WeightChart from "../components/WeightChart";
 import WeeklyConsistency from "../components/WeeklyConsistency";
 import YearlyHeatmap from "../components/YearlyHeatmap";
-import AddEntryModal from "../components/AddEntryModal";
 import { 
   Bell, 
   HelpCircle, 
@@ -19,25 +18,28 @@ import {
   Layers
 } from "lucide-react";
 import Link from "next/link";
+import StreakChip from "@/components/StreakChip";
+
+import { useHabits } from "@/context/HabitContext";
 
 export default function Dashboard() {
-  const [entries, setEntries] = useState<HabitEntry[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { entries, loading } = useHabits();
+  const [user, setUser] = useState<{ name: string } | null>(null);
 
-  const fetchEntries = async () => {
+  const fetchUser = async () => {
     try {
-      const data = await getEntries();
-      setEntries(data);
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+      }
     } catch (e) {
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEntries();
+    fetchUser();
   }, []);
 
   const stats = calculateStats(entries);
@@ -46,8 +48,15 @@ export default function Dashboard() {
   const toLbs = (kg: number) => Math.round(kg * 2.20462 * 10) / 10;
 
   // Latest weight from entries
-  const currentWeightLbs = entries.length > 0 ? toLbs(entries[0].weight) : 174.5;
-  const weightChangeLbs = -12.4; // Matching screenshots design by default
+  const currentWeightLbs = entries.length > 0 ? toLbs(entries[0].weight) : 0;
+  
+  // Dynamic weight change calculation
+  let weightChangeLbs = 0;
+  if (entries.length > 1) {
+    const latestWeight = entries[0].weight;
+    const earliestWeight = entries[entries.length - 1].weight;
+    weightChangeLbs = toLbs(latestWeight - earliestWeight);
+  }
 
   if (loading) {
     return (
@@ -59,54 +68,14 @@ export default function Dashboard() {
 
   return (
     <>
-      {/* Top Header Row */}
-      <div className="view-header">
-        <div className="nav-tabs">
-          <div className="nav-tab active">Dashboard</div>
-          <Link href="/tracker" style={{ textDecoration: "none" }}>
-            <div className="nav-tab">Daily</div>
-          </Link>
-        </div>
-
-        <div className="header-right">
-          {/* Streak pill */}
-          <div 
-            style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "8px", 
-              backgroundColor: "var(--badge-blue-bg)", 
-              color: "var(--badge-blue-text)", 
-              padding: "6px 16px", 
-              borderRadius: "9999px",
-              fontSize: "14px",
-              fontWeight: 600
-            }}
-          >
-            <Zap size={14} fill="currentColor" />
-            <span>Streak: {stats.streakDays} Days</span>
-          </div>
-
-          {/* Add Entry Button */}
-          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-            <Plus size={16} />
-            <span>Add Entry</span>
-          </button>
-
-          <button style={{ background: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-            <Bell size={20} />
-          </button>
-
-          <button style={{ background: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-            <HelpCircle size={20} />
-          </button>
-        </div>
-      </div>
 
       {/* Greeting Banner */}
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-        <h1>Good Morning, Alex</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "15px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+          <h1 style={{ margin: 0 }}>Good Morning, {user ? user.name.split(" ")[0] : "Alex"}</h1>
+          <StreakChip />
+        </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "15px", margin: 0 }}>
           Here's how your health and habits are trending today.
         </p>
       </div>
@@ -116,19 +85,24 @@ export default function Dashboard() {
         {/* Card 1: Weight */}
         <div className="metric-card">
           <span className="metric-label">Current Weight</span>
-          <span className="metric-value">{currentWeightLbs} <span style={{ fontSize: "14px", fontWeight: 500 }}>lbs</span></span>
-          <span className="metric-desc trend-down">
-            <TrendingDown size={14} />
-            <span>-0.8 lbs this week</span>
+          <span className="metric-value">
+            {currentWeightLbs > 0 ? `${currentWeightLbs} ` : "--- "}
+            {currentWeightLbs > 0 && <span style={{ fontSize: "14px", fontWeight: 500 }}>lbs</span>}
+          </span>
+          <span className="metric-desc" style={{ color: "var(--text-muted)" }}>
+            <span>Last logged weight</span>
           </span>
         </div>
 
         {/* Card 2: Weight Change */}
         <div className="metric-card">
           <span className="metric-label">Weight Change</span>
-          <span className="metric-value">{weightChangeLbs} <span style={{ fontSize: "14px", fontWeight: 500 }}>lbs total</span></span>
+          <span className="metric-value">
+            {weightChangeLbs !== 0 ? `${weightChangeLbs > 0 ? "+" : ""}${weightChangeLbs} ` : "0.0 "}
+            <span style={{ fontSize: "14px", fontWeight: 500 }}>lbs total</span>
+          </span>
           <span className="metric-desc" style={{ color: "var(--text-muted)" }}>
-            <span>Since Jan 1st</span>
+            <span>Since first log</span>
           </span>
         </div>
 
@@ -137,16 +111,16 @@ export default function Dashboard() {
           <span className="metric-label">Current Streak</span>
           <span className="metric-value">{stats.streakDays} <span style={{ fontSize: "14px", fontWeight: 500 }}>Days</span></span>
           <div style={{ width: "100%", height: "4px", backgroundColor: "#f1f5f9", borderRadius: "9999px", overflow: "hidden", marginTop: "4px" }}>
-            <div style={{ width: "65%", height: "100%", backgroundColor: "var(--primary-color)" }}></div>
+            <div style={{ width: `${Math.min(100, stats.streakDays * 10)}%`, height: "100%", backgroundColor: "var(--primary-color)" }}></div>
           </div>
         </div>
 
         {/* Card 4: Longest Streak */}
         <div className="metric-card">
           <span className="metric-label">Longest Streak</span>
-          <span className="metric-value">45 <span style={{ fontSize: "14px", fontWeight: 500 }}>Days</span></span>
+          <span className="metric-value">{stats.longestStreak} <span style={{ fontSize: "14px", fontWeight: 500 }}>Days</span></span>
           <span className="metric-desc" style={{ color: "var(--text-muted)" }}>
-            <span>Last achieved Feb 12</span>
+            <span>All-time record</span>
           </span>
         </div>
 
@@ -154,18 +128,17 @@ export default function Dashboard() {
         <div className="metric-card">
           <span className="metric-label">Completion Rate</span>
           <span className="metric-value">{stats.completionRate}%</span>
-          <span className="metric-desc trend-down">
-            <TrendingDown size={14} />
-            <span>-2% from last month</span>
+          <span className="metric-desc" style={{ color: "var(--text-muted)" }}>
+            <span>Avg completion rate</span>
           </span>
         </div>
 
         {/* Card 6: Total Entries */}
         <div className="metric-card">
           <span className="metric-label">Total Entries</span>
-          <span className="metric-value">156</span>
+          <span className="metric-value">{stats.totalEntries}</span>
           <span className="metric-desc" style={{ color: "var(--text-muted)" }}>
-            <span>Across 12 habits</span>
+            <span>Total days logged</span>
           </span>
         </div>
       </div>
@@ -186,13 +159,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Modal Dialog */}
-      {isModalOpen && (
-        <AddEntryModal 
-          onClose={() => setIsModalOpen(false)} 
-          onSave={fetchEntries} 
-        />
-      )}
     </>
   );
 }

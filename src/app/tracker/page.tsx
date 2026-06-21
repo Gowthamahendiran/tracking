@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getEntries, calculateStats, HabitEntry, minutesToSleepString } from "@/lib/db";
-import AddEntryModal from "../../components/AddEntryModal";
+import { calculateStats, HabitEntry, minutesToSleepString } from "@/lib/db";
+import { useHabits } from "@/context/HabitContext";
 import {
   Bell,
   HelpCircle,
   Plus,
-  Zap,
   Filter,
   ArrowUpDown,
   Search,
@@ -16,331 +15,441 @@ import {
   Edit2,
   Trash2,
   TrendingUp,
+  Scale,
+  Flower2,
+  Activity,
+  Footprints,
+  Heart,
+  Code,
+  BookOpen,
+  Moon,
+  Check,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import StreakChip from "@/components/StreakChip";
+
+// Helper parsers for DB strings to form numbers
+const parseYogaMin = (yogaStr: string): number => {
+  if (!yogaStr || yogaStr.includes("Rest") || yogaStr.includes("Missed") || yogaStr === "---") return 0;
+  const match = yogaStr.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+};
+
+const parseRunKm = (runStr: string): number => {
+  if (!runStr || runStr.includes("No") || runStr.includes("Missed") || runStr === "---") return 0;
+  const match = runStr.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+};
+
+const parseCardio = (cardioStr: string) => {
+  if (!cardioStr || cardioStr === "---" || cardioStr.includes("Missed")) {
+    return { activity: "---", minutes: 0 };
+  }
+  // check format "Swim (45m)"
+  const match = cardioStr.match(/([a-zA-Z\s]+)\((\d+)m\)/);
+  if (match) {
+    return { activity: match[1].trim(), minutes: parseInt(match[2], 10) };
+  }
+  return { activity: cardioStr, minutes: 0 };
+};
+
+const parseHindiMin = (hindiStr: string): number => {
+  if (!hindiStr || hindiStr === "---" || hindiStr.includes("Missed")) return 0;
+  const match = hindiStr.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+};
+
+const formatDisplayDate = (dateStr: string) => {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+};
 
 export default function DailyTracker() {
-  const [entries, setEntries] = useState<HabitEntry[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<HabitEntry | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [sortAsc, setSortAsc] = useState(false);
+  const { entries, loading, saveHabitEntry } = useHabits();
 
-  const fetchEntries = async () => {
-    try {
-      const data = await getEntries();
-      setEntries(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Form States
+  const [formDate, setFormDate] = useState("");
+  const [weight, setWeight] = useState("0");
+  const [meditationMins, setMeditationMins] = useState("0");
+  const [runKm, setRunKm] = useState("0");
+  const [steps, setSteps] = useState("0");
+  const [cardioActivity, setCardioActivity] = useState("---");
+  const [cardioMins, setCardioMins] = useState("0");
+  const [aiStudyHours, setAiStudyHours] = useState("0");
+  const [hindiMins, setHindiMins] = useState("0");
+  const [sleepHours, setSleepHours] = useState("0");
+
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchEntries();
+    // Default form date to today
+    const today = new Date().toISOString().split("T")[0];
+    setFormDate(today);
   }, []);
+
+  // Fetch / update form fields when Date changes
+  useEffect(() => {
+    if (!formDate || entries.length === 0) return;
+
+    const existing = entries.find((e) => e.date === formDate);
+    if (existing) {
+      setWeight(existing.weight.toString());
+      setMeditationMins(parseYogaMin(existing.yoga).toString());
+      setRunKm(parseRunKm(existing.runJog).toString());
+      setSteps(existing.steps.toString());
+
+      const parsedCard = parseCardio(existing.cardio);
+      setCardioActivity(parsedCard.activity);
+      setCardioMins(parsedCard.minutes.toString());
+
+      setAiStudyHours(existing.pythonAi.toString());
+      setHindiMins(parseHindiMin(existing.hindi).toString());
+
+      const hours = Math.round((existing.sleepMinutes / 60) * 10) / 10;
+      setSleepHours(hours.toString());
+    } else {
+      // Set to defaults
+      setWeight("0");
+      setMeditationMins("0");
+      setRunKm("0");
+      setSteps("0");
+      setCardioActivity("---");
+      setCardioMins("0");
+      setAiStudyHours("0");
+      setHindiMins("0");
+      setSleepHours("0");
+    }
+  }, [formDate, entries]);
 
   const stats = calculateStats(entries);
 
-  // Filter and Search logic
-  const getFilteredEntries = () => {
-    let result = [...entries];
-    
-    // Sort
-    result.sort((a, b) => {
-      if (sortAsc) {
-        return a.date.localeCompare(b.date);
-      } else {
-        return b.date.localeCompare(a.date);
-      }
-    });
+  // Handle Form Submission
+  const handleSaveForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formDate) return;
 
-    // Search query
-    if (searchTerm.trim() !== "") {
-      const query = searchTerm.toLowerCase();
-      result = result.filter(
-        (e) =>
-          e.date.includes(query) ||
-          e.day.toLowerCase().includes(query) ||
-          e.yoga.toLowerCase().includes(query) ||
-          e.runJog.toLowerCase().includes(query) ||
-          e.cardio.toLowerCase().includes(query) ||
-          e.hindi.toLowerCase().includes(query)
-      );
+    const parsedDate = new Date(formDate);
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayName = dayNames[parsedDate.getDay()];
+
+    const sleepHrsNum = parseFloat(sleepHours) || 0;
+    const totalSleepMinutes = Math.round(sleepHrsNum * 60);
+
+    const medNum = parseInt(meditationMins, 10) || 0;
+    const yogaStr = medNum > 0 ? `${medNum} mins` : "Rest Day";
+
+    const runNum = parseInt(runKm, 10) || 0;
+    const runStr = runNum > 0 ? `${runNum}km Run` : "No Run";
+
+    const cardioNum = parseInt(cardioMins, 10) || 0;
+    const cardioStr = cardioActivity !== "---" && cardioNum > 0
+      ? `${cardioActivity} (${cardioNum}m)`
+      : "---";
+
+    const hindiNum = parseInt(hindiMins, 10) || 0;
+    const hindiStr = hindiNum > 0 ? `${hindiNum} mins` : "---";
+
+    const entry: HabitEntry = {
+      id: formDate,
+      date: formDate,
+      day: dayName,
+      weight: parseFloat(weight) || 74.0,
+      yoga: yogaStr,
+      runJog: runStr,
+      steps: parseInt(steps, 10) || 0,
+      cardio: cardioStr,
+      pythonAi: parseFloat(aiStudyHours) || 0,
+      hindi: hindiStr,
+      sleepMinutes: totalSleepMinutes,
+    };
+
+    setIsSaving(true);
+    try {
+      await saveHabitEntry(entry);
+      // Give a tiny artificial delay for premium UX transition
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      console.error("Save entry failed:", err);
+    } finally {
+      setIsSaving(false);
     }
-
-    return result;
   };
 
-  const filtered = getFilteredEntries();
-
-  const handleEditClick = (entry: HabitEntry) => {
-    setEditingEntry(entry);
-    setIsModalOpen(true);
-  };
-
-  const handleAddNewClick = () => {
-    setEditingEntry(null);
-    setIsModalOpen(true);
-  };
-
-  // Export to CSV helper
-  const handleExport = () => {
-    const headers = ["Date", "Day", "Weight (kg)", "Yoga", "Run/Jog", "Steps", "Cardio", "Python/AI (hrs)", "Hindi", "Sleep"];
-    const csvRows = [headers.join(",")];
-    
-    entries.forEach((e) => {
-      const row = [
-        e.date,
-        e.day,
-        e.weight,
-        `"${e.yoga}"`,
-        `"${e.runJog}"`,
-        e.steps,
-        `"${e.cardio}"`,
-        e.pythonAi,
-        `"${e.hindi}"`,
-        `"${minutesToSleepString(e.sleepMinutes)}"`
-      ];
-      csvRows.push(row.join(","));
-    });
-
-    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `LifeTracker_Habits_Export.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Custom status badges matching screenshot
-  const renderYogaBadge = (yogaVal: string) => {
-    if (yogaVal === "Rest Day") return <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>Rest Day</span>;
-    if (yogaVal === "Missed" || yogaVal === "---") return <span className="badge-red">Missed</span>;
-    return <span className="badge-green">{yogaVal}</span>;
-  };
-
-  const renderRunBadge = (runVal: string) => {
-    if (runVal === "No Run") return <span className="badge-red">No Run</span>;
-    if (runVal === "Missed" || runVal === "---") return <span style={{ color: "var(--text-light)" }}>---</span>;
-    return <span className="badge-green">{runVal}</span>;
-  };
-
-  const renderPythonBadge = (hours: number) => {
-    if (hours <= 0) return <span style={{ color: "var(--text-light)" }}>---</span>;
-    return <span className="badge-blue">{hours.toFixed(1)} {hours === 1 ? "hour" : "hours"}</span>;
-  };
-
-  const renderHindiBadge = (hindiVal: string) => {
-    if (hindiVal === "Missed" || hindiVal === "---") return <span style={{ color: "var(--text-light)" }}>Missed</span>;
-    return <span className="badge-orange">{hindiVal}</span>;
+  const handleResetForm = () => {
+    setMeditationMins("0");
+    setRunKm("0");
+    setSteps("10000");
+    setCardioActivity("---");
+    setCardioMins("0");
+    setAiStudyHours("0");
+    setHindiMins("0");
+    setSleepHours("7.5");
   };
 
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", fontSize: "16px", color: "var(--text-muted)", fontWeight: 500 }}>
-        Loading Habit Logs...
+        Loading Habits Hub...
       </div>
     );
   }
 
   return (
     <>
-      {/* Top Header Row */}
-      <div className="view-header">
-        <div className="nav-tabs">
-          <Link href="/" style={{ textDecoration: "none" }}>
-            <div className="nav-tab">Daily Tracker</div>
-          </Link>
-          <div className="nav-tab active">Today</div>
-          <div className="nav-tab">Calendar View</div>
+      {/* Page Title */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <h1 style={{ margin: 0 }}>Habit Tracking</h1>
+            <StreakChip />
+          </div>
+          <p style={{ color: "var(--text-muted)", fontSize: "15px", margin: 0 }}>
+            Log your daily activities and build better habits
+          </p>
         </div>
+      </div>
 
-        <div className="header-right">
-          {/* Streak pill */}
-          <div 
-            style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "8px", 
-              backgroundColor: "var(--badge-blue-bg)", 
-              color: "var(--badge-blue-text)", 
-              padding: "6px 16px", 
-              borderRadius: "9999px",
+      {/* SECTION 1: LOG YOUR ACTIVITIES CARD */}
+      <div className="chart-card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h2>Log Your Activities</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "2px" }}>
+              Enter your activities for the current date
+            </p>
+          </div>
+
+          {/* Dynamic Date Selector */}
+          <input
+            type="date"
+            value={formDate}
+            onChange={(e) => setFormDate(e.target.value)}
+            style={{
               fontSize: "14px",
-              fontWeight: 600
+              fontWeight: 600,
+              color: "var(--text-main)",
+              backgroundColor: "var(--bg-sidebar)",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              border: "1px solid var(--border-color)",
+              outline: "none",
+              cursor: "pointer"
             }}
-          >
-            <Zap size={14} fill="currentColor" />
-            <span>Streak: {stats.streakDays} Days</span>
-          </div>
-
-          {/* Add Entry Button */}
-          <button className="btn-primary" onClick={handleAddNewClick}>
-            <Plus size={16} />
-            <span>Add Entry</span>
-          </button>
-
-          <button style={{ background: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-            <Bell size={20} />
-          </button>
-
-          <button style={{ background: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-            <HelpCircle size={20} />
-          </button>
+          />
         </div>
-      </div>
 
-      {/* Main logs table panel */}
-      <div className="table-container">
-        {/* Table top controls */}
-        <div className="table-controls">
-          <div className="controls-left">
-            <button className="btn-secondary" onClick={() => setSortAsc(!sortAsc)}>
-              <ArrowUpDown size={14} />
-              <span>Sort</span>
-            </button>
-            <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: 500 }}>
-              Showing {filtered.length} entries for current week
-            </span>
-          </div>
-
-          <div className="controls-right">
-            <div className="search-wrapper">
-              <Search className="search-icon" size={16} />
-              <input
-                type="text"
-                placeholder="Search logs..."
-                className="search-input"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        <form onSubmit={handleSaveForm} style={{ marginTop: "10px" }}>
+          {/* Row 1: Weight, Meditation, Run/Jog */}
+          <div className="log-form-grid">
+            <div className="form-group">
+              <label className="form-label">Weight</label>
+              <div className="input-suffix-wrapper">
+                <Scale size={16} className="input-prefix-icon" />
+                <input
+                  type="number"
+                  step="0.1"
+                  className="form-input form-input-with-prefix-suffix"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  required
+                />
+                <span className="input-suffix">kg</span>
+              </div>
             </div>
-            
-            <button className="btn-secondary" onClick={handleExport} title="Export to CSV">
-              <Download size={14} />
+
+            <div className="form-group">
+              <label className="form-label">Meditation</label>
+              <div className="input-suffix-wrapper">
+                <Flower2 size={16} className="input-prefix-icon" />
+                <input
+                  type="number"
+                  className="form-input form-input-with-prefix-suffix"
+                  value={meditationMins}
+                  onChange={(e) => setMeditationMins(e.target.value)}
+                  required
+                />
+                <span className="input-suffix">minutes</span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Run / Jog</label>
+              <div className="input-suffix-wrapper">
+                <Activity size={16} className="input-prefix-icon" />
+                <input
+                  type="number"
+                  step="0.1"
+                  className="form-input form-input-with-prefix-suffix"
+                  value={runKm}
+                  onChange={(e) => setRunKm(e.target.value)}
+                  required
+                />
+                <span className="input-suffix">km</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Steps, Activity */}
+          <div className="log-form-grid-2">
+            <div className="form-group">
+              <label className="form-label">Steps</label>
+              <div className="input-suffix-wrapper">
+                <Footprints size={16} className="input-prefix-icon" />
+                <input
+                  type="number"
+                  className="form-input form-input-with-prefix-suffix"
+                  value={steps}
+                  onChange={(e) => setSteps(e.target.value)}
+                  required
+                />
+                <span className="input-suffix">steps</span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Activity</label>
+              <div style={{ display: "flex", gap: "12px" }}>
+                <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center" }}>
+                  <Heart size={16} className="input-prefix-icon" />
+                  <select
+                    className="form-select form-input-with-prefix"
+                    value={cardioActivity}
+                    onChange={(e) => setCardioActivity(e.target.value)}
+                  >
+                    <option value="---">---</option>
+                    <option value="Cardio">Cardio</option>
+                    <option value="Shuttle">Shuttle</option>
+                    <option value="Cricket">Cricket</option>
+                    <option value="Swim">Swim</option>
+                  </select>
+                </div>
+                <div className="input-suffix-wrapper" style={{ width: "140px" }}>
+                  <input
+                    type="number"
+                    className="form-input form-input-with-suffix"
+                    value={cardioMins}
+                    onChange={(e) => setCardioMins(e.target.value)}
+                    disabled={cardioActivity === "---"}
+                  />
+                  <span className="input-suffix">minutes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: AI Study, Hindi Study, Sleep */}
+          <div className="log-form-grid-3">
+            <div className="form-group">
+              <label className="form-label">AI Study</label>
+              <div className="input-suffix-wrapper">
+                <Code size={16} className="input-prefix-icon" />
+                <input
+                  type="number"
+                  step="0.5"
+                  className="form-input form-input-with-prefix-suffix"
+                  value={aiStudyHours}
+                  onChange={(e) => setAiStudyHours(e.target.value)}
+                  required
+                />
+                <span className="input-suffix">hours</span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Hindi Study</label>
+              <div className="input-suffix-wrapper">
+                <BookOpen size={16} className="input-prefix-icon" />
+                <input
+                  type="number"
+                  className="form-input form-input-with-prefix-suffix"
+                  value={hindiMins}
+                  onChange={(e) => setHindiMins(e.target.value)}
+                  required
+                />
+                <span className="input-suffix">minutes</span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Sleep</label>
+              <div className="input-suffix-wrapper">
+                <Moon size={16} className="input-prefix-icon" />
+                <input
+                  type="number"
+                  step="0.1"
+                  className="form-input form-input-with-prefix-suffix"
+                  value={sleepHours}
+                  onChange={(e) => setSleepHours(e.target.value)}
+                  required
+                />
+                <span className="input-suffix">hours</span>
+              </div>
+            </div>
+          </div>
+
+
+          {/* Action Buttons */}
+          <div className="form-actions-row">
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              onClick={handleResetForm}
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#4f46e5" }}
+            >
+              {saveSuccess ? <Check size={14} /> : <Check size={14} />}
+              <span>{saveSuccess ? "Saved!" : "Save Entry"}</span>
             </button>
           </div>
-        </div>
-
-        {/* Table data grid */}
-        <div style={{ overflowX: "auto" }}>
-          <table className="tracker-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Day</th>
-                <th>Weight</th>
-                <th>Yoga</th>
-                <th>Run/Jog</th>
-                <th>Steps</th>
-                <th>Cardio</th>
-                <th>Python/AI</th>
-                <th>Hindi</th>
-                <th>Sleep</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={11} style={{ textAlign: "center", color: "var(--text-muted)", padding: "40px" }}>
-                    No entries found matching filters.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="cell-bold">
-                      <div className="cell-date-lock">
-                        <span>{entry.date}</span>
-                        <Lock className="lock-icon" size={13} />
-                      </div>
-                    </td>
-                    <td style={{ color: "var(--text-muted)", fontWeight: 500 }}>{entry.day}</td>
-                    <td>{entry.weight} kg</td>
-                    <td>{renderYogaBadge(entry.yoga)}</td>
-                    <td>{renderRunBadge(entry.runJog)}</td>
-                    <td>{entry.steps.toLocaleString()}</td>
-                    <td style={{ fontStyle: entry.cardio === "---" ? "normal" : "italic", color: entry.cardio === "---" ? "var(--text-light)" : "inherit" }}>
-                      {entry.cardio}
-                    </td>
-                    <td>{renderPythonBadge(entry.pythonAi)}</td>
-                    <td>{renderHindiBadge(entry.hindi)}</td>
-                    <td>{minutesToSleepString(entry.sleepMinutes)}</td>
-                    <td>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <button 
-                          onClick={() => handleEditClick(entry)} 
-                          style={{ background: "none", cursor: "pointer", color: "var(--primary-color)", padding: "4px" }}
-                          title="Edit log"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        </form>
       </div>
 
-      {/* Summary statistics row below the table */}
-      <div className="metrics-row" style={{ marginTop: "10px" }}>
-        {/* Card 1: Sleep */}
-        <div className="metric-card">
-          <span className="metric-label" style={{ fontSize: "11px" }}>Avg. Sleep</span>
-          <span className="metric-value" style={{ fontSize: "24px" }}>{stats.avgSleep}</span>
-          <span className="metric-desc trend-up">
-            <TrendingUp size={12} />
-            <span>+12% vs last week</span>
-          </span>
+      {/* Loading Overlay Spinner */}
+      {isSaving && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          backgroundColor: "rgba(15, 23, 42, 0.4)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 9999
+        }}>
+          <div style={{
+            padding: "32px 48px",
+            borderRadius: "16px",
+            backgroundColor: "var(--bg-card)",
+            border: "1px solid var(--border-color)",
+            boxShadow: "var(--shadow-lg)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "16px"
+          }}>
+            <Loader2 className="animate-spin" style={{ color: "#4f46e5" }} size={40} />
+            <span style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-main)" }}>Saving Entry...</span>
+          </div>
         </div>
-
-        {/* Card 2: Yoga Sessions */}
-        <div className="metric-card">
-          <span className="metric-label" style={{ fontSize: "11px" }}>Yoga Sessions</span>
-          <span className="metric-value" style={{ fontSize: "24px" }}>{stats.yogaSessions}</span>
-          <span className="metric-desc trend-up" style={{ color: "#b45309" }}>
-            <span>On target</span>
-          </span>
-        </div>
-
-        {/* Card 3: Avg Steps */}
-        <div className="metric-card">
-          <span className="metric-label" style={{ fontSize: "11px" }}>Avg. Steps</span>
-          <span className="metric-value" style={{ fontSize: "24px" }}>{stats.avgSteps.toLocaleString()}</span>
-          <span className="metric-desc trend-up">
-            <span>Above goal (10k)</span>
-          </span>
-        </div>
-
-        {/* Card 4: Learning Hours */}
-        <div className="metric-card">
-          <span className="metric-label" style={{ fontSize: "11px" }}>Learning Hours</span>
-          <span className="metric-value" style={{ fontSize: "24px" }}>{stats.learningHours} hrs</span>
-          <span className="metric-desc trend-up" style={{ color: "var(--primary-color)" }}>
-            <span>Top 5% of users</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Edit Entry Modal */}
-      {isModalOpen && (
-        <AddEntryModal
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingEntry(null);
-          }}
-          onSave={fetchEntries}
-          existingEntry={editingEntry}
-        />
       )}
     </>
   );

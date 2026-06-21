@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "../components/Sidebar";
 import { cookies } from "next/headers";
+import { HabitProvider } from "@/context/HabitContext";
 
 export const metadata: Metadata = {
   title: "LifeTracker - Premium Habit Tracking",
@@ -21,7 +22,9 @@ export default async function RootLayout({
     return (
       <html lang="en" suppressHydrationWarning>
         <body suppressHydrationWarning>
-          {children}
+          <HabitProvider>
+            {children}
+          </HabitProvider>
         </body>
       </html>
     );
@@ -30,12 +33,14 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <div className="app-container">
-          <Sidebar />
-          <main className="main-content">
-            {children}
-          </main>
-        </div>
+        <HabitProvider>
+          <div className="app-container">
+            <Sidebar />
+            <main className="main-content">
+              {children}
+            </main>
+          </div>
+        </HabitProvider>
       </body>
     </html>
   );

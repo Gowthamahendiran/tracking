@@ -28,29 +28,25 @@ export default function WeeklyConsistency({ entries }: WeeklyConsistencyProps) {
     (e) => e.pythonAi > 0 || (e.hindi !== "Missed" && e.hindi !== "---")
   ).length;
 
-  // 4. Early Wakeup (Sleep starts before 11pm or sleepMinutes <= 450 but > 360, etc.)
-  // Let's calculate based on a stable function, fallback to 3/7 if no entries
-  const earlyWakeupCount = Math.min(
-    3,
-    recent7.filter((e) => e.sleepMinutes > 0 && e.sleepMinutes < 440).length || 3
-  );
+  // 4. Early Wakeup (Sleep hours >= 7 hours)
+  const earlyWakeupCount = recent7.filter((e) => e.sleepMinutes >= 420).length;
 
   const habits = [
     {
       name: "Exercise",
-      current: Math.max(exerciseCount, 6), // Align with screenshots by default
+      current: exerciseCount,
       total: 7,
       color: "#0052cc",
     },
     {
       name: "Meditation",
-      current: Math.max(meditationCount, 5),
+      current: meditationCount,
       total: 7,
       color: "#475569",
     },
     {
       name: "Reading",
-      current: Math.max(readingCount, 7),
+      current: readingCount,
       total: 7,
       color: "#78350f",
     },

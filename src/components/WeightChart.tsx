@@ -19,13 +19,6 @@ export default function WeightChart({ entries }: WeightChartProps) {
     // Sort chronological for chart
     const chronoEntries = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     
-    // Filter October entries specifically to align with screenshot design by default
-    const octEntries = chronoEntries.filter(e => e.date.startsWith("2024-10"));
-    
-    if (octEntries.length > 0 && timeframe === "1M") {
-      return octEntries;
-    }
-
     if (timeframe === "7D") {
       return chronoEntries.slice(-7);
     } else if (timeframe === "1M") {

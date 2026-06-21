@@ -1,15 +1,3 @@
-import { db, isFirebaseConfigured } from "./firebase";
-import {
-  collection,
-  getDocs,
-  doc,
-  setDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  limit,
-} from "firebase/firestore";
-
 export interface HabitEntry {
   id: string; // date string "YYYY-MM-DD"
   date: string; // YYYY-MM-DD
@@ -30,7 +18,9 @@ export interface HabitStats {
   avgSteps: number;
   learningHours: number;
   streakDays: number;
+  longestStreak: number;
   completionRate: number; // %
+  totalEntries: number;
 }
 
 // Convert sleep minutes to "7h 24m"
@@ -61,212 +51,51 @@ export function sleepStringToMinutes(sleepStr: string): number {
   return 0;
 }
 
-const STORAGE_KEY = "lifetracker_entries";
-
-// Initial seed data matching the screenshots
-const SEED_ENTRIES: HabitEntry[] = [
-  // Entries matching the daily tracker view (May 2024)
-  {
-    id: "2024-05-20",
-    date: "2024-05-20",
-    day: "Monday",
-    weight: 73.8,
-    yoga: "10 mins",
-    runJog: "No Run",
-    steps: 10240,
-    cardio: "Step",
-    pythonAi: 2.0,
-    hindi: "Duolingo",
-    sleepMinutes: 444, // 7h 24m
-  },
-  {
-    id: "2024-05-19",
-    date: "2024-05-19",
-    day: "Sunday",
-    weight: 74.0,
-    yoga: "Rest Day",
-    runJog: "5km Jog",
-    steps: 8930,
-    cardio: "---",
-    pythonAi: 4.0,
-    hindi: "Vocab",
-    sleepMinutes: 485, // 8h 05m
-  },
-  {
-    id: "2024-05-18",
-    date: "2024-05-18",
-    day: "Saturday",
-    weight: 74.2,
-    yoga: "20 mins",
-    runJog: "No Run",
-    steps: 12402,
-    cardio: "Swim (45m)",
-    pythonAi: 2.5,
-    hindi: "Duolingo",
-    sleepMinutes: 432, // 7h 12m
-  },
-  {
-    id: "2024-05-17",
-    date: "2024-05-17",
-    day: "Friday",
-    weight: 74.5,
-    yoga: "15 mins",
-    runJog: "10km Run",
-    steps: 18200,
-    cardio: "---",
-    pythonAi: 1.0,
-    hindi: "Missed",
-    sleepMinutes: 405, // 6h 45m
-  },
-  {
-    id: "2024-05-16",
-    date: "2024-05-16",
-    day: "Thursday",
-    weight: 74.6,
-    yoga: "Rest Day",
-    runJog: "5km Jog",
-    steps: 9200,
-    cardio: "---",
-    pythonAi: 3.0,
-    hindi: "Duolingo",
-    sleepMinutes: 420, // 7h 00m
-  },
-  {
-    id: "2024-05-15",
-    date: "2024-05-15",
-    day: "Wednesday",
-    weight: 74.8,
-    yoga: "15 mins",
-    runJog: "No Run",
-    steps: 7800,
-    cardio: "Swim (30m)",
-    pythonAi: 1.5,
-    hindi: "Vocab",
-    sleepMinutes: 435, // 7h 15m
-  },
-  {
-    id: "2024-05-14",
-    date: "2024-05-14",
-    day: "Tuesday",
-    weight: 75.0,
-    yoga: "10 mins",
-    runJog: "5km Jog",
-    steps: 11000,
-    cardio: "---",
-    pythonAi: 2.0,
-    hindi: "Duolingo",
-    sleepMinutes: 450, // 7h 30m
-  },
-
-  // Weight Trend Data matching the bar chart in the second screenshot (October 2024 weight data)
-  { id: "2024-10-01", date: "2024-10-01", day: "Tuesday", weight: 79.1, yoga: "15 mins", runJog: "5km Jog", steps: 11200, cardio: "---", pythonAi: 2.0, hindi: "Duolingo", sleepMinutes: 440 },
-  { id: "2024-10-04", date: "2024-10-04", day: "Friday", weight: 78.9, yoga: "Rest Day", runJog: "No Run", steps: 8900, cardio: "Swim (30m)", pythonAi: 1.5, hindi: "Vocab", sleepMinutes: 450 },
-  { id: "2024-10-07", date: "2024-10-07", day: "Monday", weight: 78.5, yoga: "20 mins", runJog: "5km Jog", steps: 12100, cardio: "---", pythonAi: 2.0, hindi: "Duolingo", sleepMinutes: 460 },
-  { id: "2024-10-10", date: "2024-10-10", day: "Thursday", weight: 78.6, yoga: "10 mins", runJog: "No Run", steps: 7800, cardio: "---", pythonAi: 3.5, hindi: "Missed", sleepMinutes: 420 },
-  { id: "2024-10-13", date: "2024-10-13", day: "Sunday", weight: 78.1, yoga: "Rest Day", runJog: "10km Run", steps: 16400, cardio: "---", pythonAi: 2.0, hindi: "Duolingo", sleepMinutes: 480 },
-  { id: "2024-10-16", date: "2024-10-16", day: "Wednesday", weight: 77.8, yoga: "15 mins", runJog: "No Run", steps: 10500, cardio: "Swim (45m)", pythonAi: 1.0, hindi: "Vocab", sleepMinutes: 430 },
-  { id: "2024-10-19", date: "2024-10-19", day: "Saturday", weight: 77.9, yoga: "20 mins", runJog: "5km Jog", steps: 11800, cardio: "---", pythonAi: 2.5, hindi: "Duolingo", sleepMinutes: 440 },
-  { id: "2024-10-22", date: "2024-10-22", day: "Tuesday", weight: 77.2, yoga: "Rest Day", runJog: "No Run", steps: 9000, cardio: "---", pythonAi: 3.0, hindi: "Vocab", sleepMinutes: 450 },
-  { id: "2024-10-25", date: "2024-10-25", day: "Friday", weight: 76.9, yoga: "15 mins", runJog: "5km Jog", steps: 10900, cardio: "---", pythonAi: 1.5, hindi: "Duolingo", sleepMinutes: 435 },
-  { id: "2024-10-28", date: "2024-10-28", day: "Monday", weight: 76.4, yoga: "10 mins", runJog: "10km Run", steps: 17200, cardio: "Swim (30m)", pythonAi: 2.0, hindi: "Vocab", sleepMinutes: 420 },
-  { id: "2024-10-31", date: "2024-10-31", day: "Thursday", weight: 76.8, yoga: "Rest Day", runJog: "No Run", steps: 8500, cardio: "---", pythonAi: 4.0, hindi: "Duolingo", sleepMinutes: 460 },
-];
-
-// Helper to seed Firestore
-export async function seedFirestoreIfNeeded(): Promise<void> {
-  if (!isFirebaseConfigured || !db) return;
-  try {
-    const querySnapshot = await getDocs(collection(db, "entries"));
-    if (querySnapshot.empty) {
-      console.log("Seeding Firestore with initial entries...");
-      for (const entry of SEED_ENTRIES) {
-        await setDoc(doc(db, "entries", entry.id), entry);
-      }
-      console.log("Firestore seeding completed!");
-    }
-  } catch (error) {
-    console.error("Failed to seed Firestore:", error);
-  }
-}
-
-// Fetch all entries sorted by date descending
+// Fetch all entries sorted by date descending via Server API Route
 export async function getEntries(): Promise<HabitEntry[]> {
-  // If Firebase is configured, read from Firebase
-  if (isFirebaseConfigured && db) {
-    try {
-      const q = collection(db, "entries");
-      const querySnapshot = await getDocs(q);
-      const entries: HabitEntry[] = [];
-      querySnapshot.forEach((docSnap) => {
-        entries.push(docSnap.data() as HabitEntry);
-      });
-      if (entries.length === 0) {
-        // Fallback to seeding
-        await seedFirestoreIfNeeded();
-        return SEED_ENTRIES.sort((a, b) => b.date.localeCompare(a.date));
-      }
+  try {
+    const res = await fetch("/api/entries");
+    if (res.ok) {
+      const entries: HabitEntry[] = await res.json();
       return entries.sort((a, b) => b.date.localeCompare(a.date));
-    } catch (e) {
-      console.error("Firestore getEntries error, falling back to localStorage:", e);
     }
+  } catch (e) {
+    console.error("Failed to get entries via API:", e);
   }
-
-  // Otherwise, use localStorage fallback
-  if (typeof window !== "undefined") {
-    const localData = localStorage.getItem(STORAGE_KEY);
-    if (localData) {
-      try {
-        return JSON.parse(localData).sort((a: HabitEntry, b: HabitEntry) => b.date.localeCompare(a.date));
-      } catch (e) {
-        console.error("Error parsing localstorage entries:", e);
-      }
-    }
-    // Set seed entries initially
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_ENTRIES));
-    return SEED_ENTRIES.sort((a, b) => b.date.localeCompare(a.date));
-  }
-
-  return SEED_ENTRIES.sort((a, b) => b.date.localeCompare(a.date));
+  return [];
 }
 
-// Save or edit an entry
+// Save or edit an entry via Server API Route
 export async function saveEntry(entry: HabitEntry): Promise<void> {
-  if (isFirebaseConfigured && db) {
-    try {
-      await setDoc(doc(db, "entries", entry.id), entry);
-      return;
-    } catch (e) {
-      console.error("Firestore saveEntry failed, saving locally:", e);
+  try {
+    const res = await fetch("/api/entries", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(entry),
+    });
+    if (!res.ok) {
+      throw new Error("Failed to save entry");
     }
-  }
-
-  if (typeof window !== "undefined") {
-    const entries = await getEntries();
-    const existingIndex = entries.findIndex((e) => e.id === entry.id);
-    if (existingIndex > -1) {
-      entries[existingIndex] = entry;
-    } else {
-      entries.push(entry);
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  } catch (e) {
+    console.error("Failed to save entry via API:", e);
+    throw e;
   }
 }
 
-// Delete an entry
+// Delete an entry via Server API Route
 export async function deleteEntry(id: string): Promise<void> {
-  if (isFirebaseConfigured && db) {
-    try {
-      await deleteDoc(doc(db, "entries", id));
-      return;
-    } catch (e) {
-      console.error("Firestore deleteEntry failed, deleting locally:", e);
+  try {
+    const res = await fetch(`/api/entries?id=${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      throw new Error("Failed to delete entry");
     }
-  }
-
-  if (typeof window !== "undefined") {
-    const entries = await getEntries();
-    const updated = entries.filter((e) => e.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error("Failed to delete entry via API:", e);
+    throw e;
   }
 }
 
@@ -275,15 +104,16 @@ export function calculateStats(entries: HabitEntry[]): HabitStats {
   if (entries.length === 0) {
     return {
       avgSleep: "00h 00m",
-      yogaSessions: "0/0",
+      yogaSessions: "0/7",
       avgSteps: 0,
       learningHours: 0,
       streakDays: 0,
+      longestStreak: 0,
       completionRate: 0,
+      totalEntries: 0,
     };
   }
 
-  // Filter entries to recent 7 entries for daily tracker summaries
   // Sort ascending to analyze streaks
   const sortedAsc = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   const recent7 = entries.slice(0, 7);
@@ -308,17 +138,16 @@ export function calculateStats(entries: HabitEntry[]): HabitStats {
     recent7.reduce((acc, curr) => acc + (curr.pythonAi || 0), 0).toFixed(1)
   );
 
-  // 5. Streaks (consecutive days of recording entries or completing at least 1 habit)
+  // 5. Streaks (consecutive days of recording entries)
   let streakDays = 0;
+  let longestStreak = 0;
   if (sortedAsc.length > 0) {
-    // Basic streak calculation: count consecutive days backwards from latest entry
-    const todayStr = new Date().toISOString().split("T")[0];
     let currentStreak = 0;
     
     // Find consecutive days ending at the last entry
     let lastDate: Date | null = null;
     
-    // Go from right to left
+    // Go from right to left to get current streak
     for (let i = sortedAsc.length - 1; i >= 0; i--) {
       const entryDate = new Date(sortedAsc[i].date);
       if (lastDate === null) {
@@ -331,18 +160,40 @@ export function calculateStats(entries: HabitEntry[]): HabitStats {
           currentStreak++;
           lastDate = entryDate;
         } else if (diffDays > 1) {
-          // Gap in entries
           break;
         }
       }
     }
     streakDays = currentStreak;
+
+    // Calculate longest streak overall
+    let tempStreak = 0;
+    let prevDate: Date | null = null;
+    for (let i = 0; i < sortedAsc.length; i++) {
+      const entryDate = new Date(sortedAsc[i].date);
+      if (prevDate === null) {
+        tempStreak = 1;
+        prevDate = entryDate;
+      } else {
+        const diffTime = Math.abs(entryDate.getTime() - prevDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+          tempStreak++;
+        } else if (diffDays > 1) {
+          if (tempStreak > longestStreak) {
+            longestStreak = tempStreak;
+          }
+          tempStreak = 1;
+        }
+        prevDate = entryDate;
+      }
+    }
+    if (tempStreak > longestStreak) {
+      longestStreak = tempStreak;
+    }
   }
 
   // 6. Completion Rate
-  // Let's check how many habits are completed. A habit is completed if we did some positive action.
-  // Habits are: Yoga (done), RunJog (done), Steps (>= 8000), Cardio (done), Python/AI (done), Hindi (done).
-  // Total possible habits checked: 6.
   let totalHabitOpportunities = 0;
   let totalHabitsCompleted = 0;
 
@@ -357,7 +208,7 @@ export function calculateStats(entries: HabitEntry[]): HabitStats {
     if (e.runJog !== "No Run" && e.runJog !== "Missed" && e.runJog !== "---") {
       totalHabitsCompleted++;
     }
-    // Steps (goal is 10k, but let's count >= 8000 as complete)
+    // Steps (goal >= 8000 count as complete)
     totalHabitOpportunities++;
     if (e.steps >= 8000) {
       totalHabitsCompleted++;
@@ -388,7 +239,9 @@ export function calculateStats(entries: HabitEntry[]): HabitStats {
     yogaSessions,
     avgSteps,
     learningHours,
-    streakDays: streakDays || 12, // Default to 12 as in screenshots if new
-    completionRate: completionRate || 88, // Default to 88% as in screenshots
+    streakDays,
+    longestStreak,
+    completionRate,
+    totalEntries: entries.length,
   };
 }

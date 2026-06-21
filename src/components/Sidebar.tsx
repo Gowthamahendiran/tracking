@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronUp,
   Lock,
+  ClipboardList,
 } from "lucide-react";
 import AccountModal from "./AccountModal";
 import ResetPasswordModal from "./ResetPasswordModal";
@@ -97,9 +98,14 @@ export default function Sidebar() {
       icon: LayoutDashboard,
     },
     {
-      name: "Daily Tracker",
+      name: "Track Habits",
       path: "/tracker",
       icon: CalendarDays,
+    },
+    {
+      name: "All Activities",
+      path: "/activities",
+      icon: ClipboardList,
     },
     {
       name: "Analytics",

@@ -70,7 +70,7 @@ button, input, select {
 }
 
 .main-content {
-  padding: 40px;
+  padding: 20px 40px 40px 40px;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
@@ -1075,6 +1075,179 @@ h3 {
 .popper-item.logout-item:hover {
   background-color: #fde8e8;
   color: #9b1c1c;
+}
+
+/* Redesigned Log Activity Form */
+.log-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px 24px;
+}
+
+.log-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 24px;
+  margin-top: 20px;
+}
+
+.log-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px 24px;
+  margin-top: 20px;
+}
+
+.input-suffix-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.input-prefix-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-light);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.form-input-with-prefix-suffix {
+  padding-left: 36px !important;
+  padding-right: 68px !important;
+}
+
+.form-input-with-prefix {
+  padding-left: 36px !important;
+}
+
+.form-input-with-suffix {
+  padding-right: 68px !important;
+}
+
+.tip-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #fffbeb;
+  border: 1px dashed #fef3c7;
+  color: #b45309;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.form-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* Recent Entries Redesigned List */
+.recent-entries-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-entries-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.recent-entry-row {
+  display: grid;
+  grid-template-columns: 140px repeat(8, 1fr) 100px;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: #ffffff;
+  transition: background-color var(--transition-fast);
+}
+
+.recent-entry-row:last-child {
+  border-bottom: none;
+}
+
+.recent-entry-row:hover {
+  background-color: #f8fafc;
+}
+
+.recent-entry-date-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recent-entry-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.recent-entry-day {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.recent-entry-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.recent-entry-cell-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+  flex-shrink: 0;
+}
+
+.recent-entry-cell-icon.green {
+  color: var(--badge-green-text);
+}
+.recent-entry-cell-icon.blue {
+  color: var(--badge-blue-text);
+}
+.recent-entry-cell-icon.orange {
+  color: var(--badge-orange-text);
+}
+
+.recent-entry-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  justify-content: flex-end;
 }
 
 /* Responsive adjust */

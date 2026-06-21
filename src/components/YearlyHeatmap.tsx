@@ -45,23 +45,6 @@ export default function YearlyHeatmap({ entries }: YearlyHeatmapProps) {
         if (e.sleepMinutes >= 420) completedCount++; // 7h+
         
         level = Math.min(4, Math.ceil(completedCount / 1.5));
-      } else {
-        // Pseudo-random but stable level based on date string hash for gorgeous look
-        const hash = dateStr.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        
-        // Let's make weekends have slightly different completion rate
-        const dayOfWeek = tempDate.getDay();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        
-        if (hash % 10 < 2) {
-          level = 0;
-        } else if (hash % 10 < 5) {
-          level = isWeekend ? 1 : 2;
-        } else if (hash % 10 < 8) {
-          level = isWeekend ? 3 : 2;
-        } else {
-          level = isWeekend ? 2 : 4;
-        }
       }
 
       days.push({

@@ -8,13 +8,14 @@ export function proxy(request: NextRequest) {
   // Define route rules
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/register");
   
-  // Protected routes: dashboard (/), tracker, analytics, history, settings
+  // Protected routes: dashboard (/), tracker, analytics, history, settings, activities
   const isProtectedRoute = 
     pathname === "/" || 
     pathname.startsWith("/tracker") || 
     pathname.startsWith("/analytics") || 
     pathname.startsWith("/history") || 
-    pathname.startsWith("/settings");
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/activities");
 
   // Redirect logic
   if (isProtectedRoute && !token) {
@@ -40,6 +41,7 @@ export const config = {
     "/analytics/:path*",
     "/history/:path*",
     "/settings/:path*",
+    "/activities/:path*",
     "/login",
     "/register",
   ],

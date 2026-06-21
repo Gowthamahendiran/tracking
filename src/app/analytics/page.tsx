@@ -19,12 +19,6 @@ export default function Analytics() {
 
   return (
     <>
-      <div className="view-header">
-        <div className="nav-tabs">
-          <div className="nav-tab active">Analytics Insights</div>
-        </div>
-      </div>
-
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         <h1>Habit Analytics</h1>
         <p style={{ color: "var(--text-muted)", fontSize: "15px" }}>

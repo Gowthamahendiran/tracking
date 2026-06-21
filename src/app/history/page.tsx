@@ -34,12 +34,6 @@ export default function History() {
 
   return (
     <>
-      <div className="view-header">
-        <div className="nav-tabs">
-          <div className="nav-tab active">Monthly History</div>
-        </div>
-      </div>
-
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         <h1>Log History</h1>
         <p style={{ color: "var(--text-muted)", fontSize: "15px" }}>
