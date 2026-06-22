@@ -1,6 +1,5 @@
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
-import { getAuth, Auth } from "firebase-admin/auth";
 
 const privateKey = process.env.FIREBASE_PRIVATE_KEY
   ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
@@ -13,7 +12,6 @@ const isConfigured = !!(
 );
 
 let adminDb: Firestore | null = null;
-let adminAuth: Auth | null = null;
 
 if (isConfigured) {
   try {
@@ -29,11 +27,10 @@ if (isConfigured) {
       : apps[0];
     
     adminDb = getFirestore(app);
-    adminAuth = getAuth(app);
   } catch (error) {
     console.error("Firebase Admin initialization failed:", error);
   }
 }
 
-export { adminDb, adminAuth, isConfigured };
-export type { Firestore, Auth };
+export { adminDb, isConfigured };
+export type { Firestore };
