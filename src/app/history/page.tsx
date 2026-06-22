@@ -52,6 +52,7 @@ export default function History() {
             return (
               <div 
                 key={month}
+                className="history-month-card"
                 style={{
                   backgroundColor: "#ffffff",
                   border: "1px solid var(--border-color)",
@@ -69,7 +70,10 @@ export default function History() {
                   </div>
                   <div>
                     <h3 style={{ fontSize: "16px", fontWeight: 700 }}>{month}</h3>
-                    <div style={{ display: "flex", gap: "16px", fontSize: "13px", color: "var(--text-muted)", marginTop: "4px" }}>
+                    <div 
+                      className="history-month-meta"
+                      style={{ display: "flex", gap: "16px", fontSize: "13px", color: "var(--text-muted)", marginTop: "4px" }}
+                    >
                       <span>{monthEntries.length} logged entries</span>
                       <span>•</span>
                       <span>Avg. weight: {avgWeight} kg</span>
