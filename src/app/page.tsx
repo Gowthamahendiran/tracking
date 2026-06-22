@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { calculateStats, HabitEntry } from "@/lib/db";
 import WeightChart from "../components/WeightChart";
 import WeeklyConsistency from "../components/WeeklyConsistency";
-import YearlyHeatmap from "../components/YearlyHeatmap";
 import { 
   Bell, 
   HelpCircle, 
@@ -27,18 +26,15 @@ export default function Dashboard() {
 
   const stats = calculateStats(entries);
 
-  // Helper to convert kg to lbs
-  const toLbs = (kg: number) => Math.round(kg * 2.20462 * 10) / 10;
-
   // Latest weight from entries
-  const currentWeightLbs = entries.length > 0 ? toLbs(entries[0].weight) : 0;
+  const currentWeightKg = entries.length > 0 ? entries[0].weight : 0;
   
   // Dynamic weight change calculation
-  let weightChangeLbs = 0;
+  let weightChangeKg = 0;
   if (entries.length > 1) {
     const latestWeight = entries[0].weight;
     const earliestWeight = entries[entries.length - 1].weight;
-    weightChangeLbs = toLbs(latestWeight - earliestWeight);
+    weightChangeKg = Math.round((latestWeight - earliestWeight) * 10) / 10;
   }
 
   if (loading) {
@@ -69,8 +65,8 @@ export default function Dashboard() {
         <div className="metric-card">
           <span className="metric-label">Current Weight</span>
           <span className="metric-value">
-            {currentWeightLbs > 0 ? `${currentWeightLbs} ` : "--- "}
-            {currentWeightLbs > 0 && <span style={{ fontSize: "14px", fontWeight: 500 }}>lbs</span>}
+            {currentWeightKg > 0 ? `${currentWeightKg} ` : "--- "}
+            {currentWeightKg > 0 && <span style={{ fontSize: "14px", fontWeight: 500 }}>kg</span>}
           </span>
           <span className="metric-desc" style={{ color: "var(--text-muted)" }}>
             <span>Last logged weight</span>
@@ -81,8 +77,8 @@ export default function Dashboard() {
         <div className="metric-card">
           <span className="metric-label">Weight Change</span>
           <span className="metric-value">
-            {weightChangeLbs !== 0 ? `${weightChangeLbs > 0 ? "+" : ""}${weightChangeLbs} ` : "0.0 "}
-            <span style={{ fontSize: "14px", fontWeight: 500 }}>lbs total</span>
+            {weightChangeKg !== 0 ? `${weightChangeKg > 0 ? "+" : ""}${weightChangeKg} ` : "0.0 "}
+            <span style={{ fontSize: "14px", fontWeight: 500 }}>kg total</span>
           </span>
           <span className="metric-desc" style={{ color: "var(--text-muted)" }}>
             <span>Since first log</span>
@@ -131,9 +127,6 @@ export default function Dashboard() {
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           {/* Weight Trend Chart */}
           <WeightChart entries={entries} />
-
-          {/* Heatmap Graph */}
-          <YearlyHeatmap entries={entries} />
         </div>
 
         <div>
