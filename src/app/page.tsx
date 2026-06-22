@@ -23,24 +23,7 @@ import StreakChip from "@/components/StreakChip";
 import { useHabits } from "@/context/HabitContext";
 
 export default function Dashboard() {
-  const { entries, loading } = useHabits();
-  const [user, setUser] = useState<{ name: string } | null>(null);
-
-  const fetchUser = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  const { entries, loading, user } = useHabits();
 
   const stats = calculateStats(entries);
 

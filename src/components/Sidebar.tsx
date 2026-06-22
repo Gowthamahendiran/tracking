@@ -17,23 +17,33 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import AccountModal from "./AccountModal";
 import ResetPasswordModal from "./ResetPasswordModal";
+import { useHabits } from "@/context/HabitContext";
 
-interface UserProfile {
-  name: string;
-  email: string;
-  dob: string;
-  avatar: string;
-  age: number;
+interface SidebarProps {
+  isMobileOpen?: boolean;
+  isMobile?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar() {
+export default function Sidebar({
+  isMobileOpen = false,
+  isMobile = false,
+  onClose,
+}: SidebarProps) {
   const pathname = usePathname();
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const { user, refreshUser } = useHabits();
   const [isPopperOpen, setIsPopperOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (onClose) {
+      onClose();
+    }
+  }, [pathname]);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -63,24 +73,6 @@ export default function Sidebar() {
       localStorage.setItem("sidebar_collapsed", "false");
     }
   };
-
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      } else {
-        throw new Error("Not authenticated");
-      }
-    } catch (e) {
-      console.error("Auth fetch failed:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
 
   // Handle clicking outside the popper to close it
   useEffect(() => {
@@ -157,15 +149,15 @@ export default function Sidebar() {
   return (
     <>
       <aside 
-        className={`sidebar ${isCollapsed ? "collapsed" : ""}`}
+        className={`sidebar ${isCollapsed && !isMobile ? "collapsed" : ""} ${isMobileOpen ? "mobile-open" : ""}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleSidebarClick}
       >
         <div className="sidebar-top">
           {/* Logo Section */}
-          <div className="sidebar-header" style={{ justifyContent: isCollapsed ? "center" : "space-between" }}>
-            {!isCollapsed ? (
+          <div className="sidebar-header" style={{ justifyContent: (isCollapsed && !isMobile) ? "center" : "space-between" }}>
+            {(!isCollapsed || isMobile) ? (
               <>
                 <div className="logo-container">
                   <Image
@@ -177,9 +169,15 @@ export default function Sidebar() {
                   />
                   <span className="logo-title">SPOWER</span>
                 </div>
-                <button className="toggle-sidebar-btn" onClick={toggleSidebar} title="Collapse Sidebar">
-                  <ChevronLeft size={18} />
-                </button>
+                {isMobile ? (
+                  <button className="close-mobile-sidebar-btn" onClick={onClose} title="Close Sidebar">
+                    <X size={20} />
+                  </button>
+                ) : (
+                  <button className="toggle-sidebar-btn" onClick={toggleSidebar} title="Collapse Sidebar">
+                    <ChevronLeft size={18} />
+                  </button>
+                )}
               </>
             ) : (
               <div 
@@ -215,10 +213,10 @@ export default function Sidebar() {
                 >
                   <div 
                     className={`nav-item ${isActive ? "active" : ""}`}
-                    data-tooltip={isCollapsed ? item.name : undefined}
+                    data-tooltip={(isCollapsed && !isMobile) ? item.name : undefined}
                   >
                     <Icon size={18} />
-                    {!isCollapsed && <span>{item.name}</span>}
+                    {(!isCollapsed || isMobile) && <span>{item.name}</span>}
                   </div>
                 </Link>
               );
@@ -254,10 +252,10 @@ export default function Sidebar() {
                 e.stopPropagation();
                 setIsPopperOpen(!isPopperOpen);
               }}
-              data-tooltip={isCollapsed ? (user ? user.name : "Alex Rivera") : undefined}
-              style={{ padding: isCollapsed ? "8px" : "12px 16px", justifyContent: isCollapsed ? "center" : "space-between" }}
+              data-tooltip={(isCollapsed && !isMobile) ? (user ? user.name : "Alex Rivera") : undefined}
+              style={{ padding: (isCollapsed && !isMobile) ? "8px" : "12px 16px", justifyContent: (isCollapsed && !isMobile) ? "center" : "space-between" }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: isCollapsed ? "0" : "12px", justifyContent: isCollapsed ? "center" : "flex-start", width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: (isCollapsed && !isMobile) ? "0" : "12px", justifyContent: (isCollapsed && !isMobile) ? "center" : "flex-start", width: "100%" }}>
                 <Image
                   src={avatarPath}
                   alt="User Avatar"
@@ -265,7 +263,7 @@ export default function Sidebar() {
                   height={40}
                   className="user-avatar"
                 />
-                {!isCollapsed && (
+                {(!isCollapsed || isMobile) && (
                   <div className="user-info" style={{ textAlign: "left" }}>
                     <span className="user-name">{user ? user.name : "Alex Rivera"}</span>
                     <span className="user-role">
@@ -274,7 +272,7 @@ export default function Sidebar() {
                   </div>
                 )}
               </div>
-              {!isCollapsed && <ChevronUp size={16} style={{ color: "var(--text-muted)", opacity: 0.8 }} />}
+              {(!isCollapsed || isMobile) && <ChevronUp size={16} style={{ color: "var(--text-muted)", opacity: 0.8 }} />}
             </div>
           </div>
         </div>
@@ -285,7 +283,7 @@ export default function Sidebar() {
         <AccountModal
           currentUser={user}
           onClose={() => setIsAccountModalOpen(false)}
-          onSave={fetchProfile}
+          onSave={refreshUser}
         />
       )}
 
