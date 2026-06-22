@@ -65,7 +65,7 @@ button, input, select {
 /* Main Layout Grid */
 .app-container {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: auto 1fr;
   min-height: 100vh;
 }
 
@@ -91,6 +91,15 @@ button, input, select {
   top: 0;
   padding: 32px 24px;
   justify-content: space-between;
+  width: 260px;
+  transition: width var(--transition-smooth), padding var(--transition-smooth);
+  box-sizing: border-box;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+  padding: 32px 16px;
+  cursor: e-resize;
 }
 
 .sidebar-top {
@@ -99,10 +108,17 @@ button, input, select {
   gap: 36px;
 }
 
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
 .logo-container {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
 }
 
 .logo-title {
@@ -112,12 +128,72 @@ button, input, select {
   letter-spacing: -0.03em;
 }
 
-.logo-subtitle {
-  font-size: 11px;
-  font-weight: 500;
+.logo-image {
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.toggle-sidebar-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.toggle-sidebar-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-main);
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+/* Tooltip styles for collapsed sidebar */
+.nav-item[data-tooltip],
+.user-profile-clickable[data-tooltip] {
+  position: relative;
+}
+
+.nav-item[data-tooltip]::after,
+.user-profile-clickable[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--text-main);
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.nav-item[data-tooltip]:hover::after,
+.user-profile-clickable[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar.collapsed .profile-popper {
+  left: 0;
+  width: 180px;
+  right: auto;
 }
 
 .sidebar-nav {

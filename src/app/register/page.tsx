@@ -55,7 +55,7 @@ export default function Register() {
       <div className="auth-card" style={{ maxWidth: "480px" }}>
         <div className="auth-header">
           <h1 className="auth-title">Create account</h1>
-          <p className="auth-subtitle">Get started with LifeTracker today</p>
+          <p className="auth-subtitle">Get started with SPOWER today</p>
         </div>
 
         {error && <div className="auth-error">{error}</div>}

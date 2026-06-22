@@ -75,7 +75,7 @@ export default function AllActivities() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `LifeTracker_Habits_Export.csv`);
+    link.setAttribute("download", `SPOWER_Habits_Export.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

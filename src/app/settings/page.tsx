@@ -154,7 +154,7 @@ export default function Settings() {
             <h2>App Information</h2>
           </div>
           <div style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.6" }}>
-            <p><strong>App Version:</strong> 1.0.0 (Premium Habit Tracking)</p>
+            <p><strong>App Version:</strong> 1.0.0</p>
             <p><strong>Privacy:</strong> Your data is stored strictly in your browser local storage or synced to your own secure Firebase instance. We do not store or track any of your personal logs on third-party servers.</p>
           </div>
         </div>

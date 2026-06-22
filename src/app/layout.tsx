@@ -5,8 +5,8 @@ import { cookies } from "next/headers";
 import { HabitProvider } from "@/context/HabitContext";
 
 export const metadata: Metadata = {
-  title: "LifeTracker - Premium Habit Tracking",
-  description: "Track your habits, weight, and fitness routines with LifeTracker.",
+  title: "SPOWER",
+  description: "Track your habits, weight, and fitness routines with SPOWER.",
 };
 
 export default async function RootLayout({

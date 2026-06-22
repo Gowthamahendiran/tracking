@@ -15,6 +15,8 @@ import {
   ChevronUp,
   Lock,
   ClipboardList,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import AccountModal from "./AccountModal";
 import ResetPasswordModal from "./ResetPasswordModal";
@@ -33,8 +35,34 @@ export default function Sidebar() {
   const [isPopperOpen, setIsPopperOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   
   const popperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar_collapsed");
+    if (saved === "true") {
+      setIsCollapsed(true);
+    }
+  }, []);
+
+  const toggleSidebar = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    const nextState = !isCollapsed;
+    setIsCollapsed(nextState);
+    localStorage.setItem("sidebar_collapsed", String(nextState));
+  };
+
+  const handleSidebarClick = () => {
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      localStorage.setItem("sidebar_collapsed", "false");
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -128,12 +156,49 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="sidebar">
+      <aside 
+        className={`sidebar ${isCollapsed ? "collapsed" : ""}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={handleSidebarClick}
+      >
         <div className="sidebar-top">
           {/* Logo Section */}
-          <div className="logo-container">
-            <span className="logo-title">LifeTracker</span>
-            <span className="logo-subtitle">Premium Habit Tracking</span>
+          <div className="sidebar-header" style={{ justifyContent: isCollapsed ? "center" : "space-between" }}>
+            {!isCollapsed ? (
+              <>
+                <div className="logo-container">
+                  <Image
+                    src="/spowerlogo.png"
+                    alt="SPOWER Logo"
+                    width={32}
+                    height={32}
+                    className="logo-image"
+                  />
+                  <span className="logo-title">SPOWER</span>
+                </div>
+                <button className="toggle-sidebar-btn" onClick={toggleSidebar} title="Collapse Sidebar">
+                  <ChevronLeft size={18} />
+                </button>
+              </>
+            ) : (
+              <div 
+                className="logo-container" 
+                style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                {isHovered ? (
+                  <ChevronRight size={22} style={{ color: "var(--primary-color)" }} />
+                ) : (
+                  <Image
+                    src="/spowerlogo.png"
+                    alt="SPOWER Logo"
+                    width={32}
+                    height={32}
+                    className="logo-image"
+                  />
+                )}
+              </div>
+            )}
           </div>
 
           {/* Navigation Section */}
@@ -142,10 +207,18 @@ export default function Sidebar() {
               const Icon = item.icon;
               const isActive = pathname === item.path;
               return (
-                <Link href={item.path} key={item.path} style={{ textDecoration: "none" }}>
-                  <div className={`nav-item ${isActive ? "active" : ""}`}>
+                <Link 
+                  href={item.path} 
+                  key={item.path} 
+                  style={{ textDecoration: "none" }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div 
+                    className={`nav-item ${isActive ? "active" : ""}`}
+                    data-tooltip={isCollapsed ? item.name : undefined}
+                  >
                     <Icon size={18} />
-                    <span>{item.name}</span>
+                    {!isCollapsed && <span>{item.name}</span>}
                   </div>
                 </Link>
               );
@@ -159,7 +232,7 @@ export default function Sidebar() {
           <div className="user-profile-wrapper" ref={popperRef}>
             {/* Popper Menu */}
             {isPopperOpen && (
-              <div className="profile-popper">
+              <div className="profile-popper" onClick={(e) => e.stopPropagation()}>
                 <button className="popper-item" onClick={handleAccountClick}>
                   <User size={15} />
                   <span>Account</span>
@@ -177,9 +250,14 @@ export default function Sidebar() {
 
             <div 
               className="user-profile-clickable"
-              onClick={() => setIsPopperOpen(!isPopperOpen)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsPopperOpen(!isPopperOpen);
+              }}
+              data-tooltip={isCollapsed ? (user ? user.name : "Alex Rivera") : undefined}
+              style={{ padding: isCollapsed ? "8px" : "12px 16px", justifyContent: isCollapsed ? "center" : "space-between" }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: isCollapsed ? "0" : "12px", justifyContent: isCollapsed ? "center" : "flex-start", width: "100%" }}>
                 <Image
                   src={avatarPath}
                   alt="User Avatar"
@@ -187,14 +265,16 @@ export default function Sidebar() {
                   height={40}
                   className="user-avatar"
                 />
-                <div className="user-info">
-                  <span className="user-name">{user ? user.name : "Alex Rivera"}</span>
-                  <span className="user-role">
-                    {user ? `Age: ${user.age}` : ""}
-                  </span>
-                </div>
+                {!isCollapsed && (
+                  <div className="user-info" style={{ textAlign: "left" }}>
+                    <span className="user-name">{user ? user.name : "Alex Rivera"}</span>
+                    <span className="user-role">
+                      {user ? `Age: ${user.age}` : ""}
+                    </span>
+                  </div>
+                )}
               </div>
-              <ChevronUp size={16} style={{ color: "var(--text-muted)", opacity: 0.8 }} />
+              {!isCollapsed && <ChevronUp size={16} style={{ color: "var(--text-muted)", opacity: 0.8 }} />}
             </div>
           </div>
         </div>
