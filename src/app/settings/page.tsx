@@ -123,8 +123,7 @@ export default function Settings() {
                 <div style={{ fontWeight: 600 }}>Weight Units</div>
                 <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Select your preferred unit for tracking weight</div>
               </div>
-              <select className="form-select" style={{ width: "100px" }} defaultValue="lbs">
-                <option value="lbs">lbs (lbs)</option>
+              <select className="form-select" style={{ width: "100px" }} defaultValue="kg">
                 <option value="kg">kg (kg)</option>
               </select>
             </div>
