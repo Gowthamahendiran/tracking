@@ -1,20 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getEntries, HabitEntry } from "@/lib/db";
+import { HabitEntry } from "@/lib/db";
 import { Calendar, ChevronRight, Lock } from "lucide-react";
 import Link from "next/link";
+import { useHabits } from "@/context/HabitContext";
 
 export default function History() {
-  const [entries, setEntries] = useState<HabitEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getEntries().then((data) => {
-      setEntries(data);
-      setLoading(false);
-    });
-  }, []);
+  const { entries, loading } = useHabits();
 
   // Group by month
   const getGroupedByMonth = () => {

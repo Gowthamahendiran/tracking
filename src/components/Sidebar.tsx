@@ -20,18 +20,11 @@ import {
 } from "lucide-react";
 import AccountModal from "./AccountModal";
 import ResetPasswordModal from "./ResetPasswordModal";
-
-interface UserProfile {
-  name: string;
-  email: string;
-  dob: string;
-  avatar: string;
-  age: number;
-}
+import { useHabits } from "@/context/HabitContext";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const { user, refreshUser } = useHabits();
   const [isPopperOpen, setIsPopperOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -63,24 +56,6 @@ export default function Sidebar() {
       localStorage.setItem("sidebar_collapsed", "false");
     }
   };
-
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      } else {
-        throw new Error("Not authenticated");
-      }
-    } catch (e) {
-      console.error("Auth fetch failed:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
 
   // Handle clicking outside the popper to close it
   useEffect(() => {
@@ -285,7 +260,7 @@ export default function Sidebar() {
         <AccountModal
           currentUser={user}
           onClose={() => setIsAccountModalOpen(false)}
-          onSave={fetchProfile}
+          onSave={refreshUser}
         />
       )}
 

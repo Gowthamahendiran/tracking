@@ -1,19 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getEntries, calculateStats, HabitEntry } from "@/lib/db";
+import { calculateStats, HabitEntry } from "@/lib/db";
 import { TrendingUp, Award, Clock, ArrowRight, Zap, Target } from "lucide-react";
+import { useHabits } from "@/context/HabitContext";
 
 export default function Analytics() {
-  const [entries, setEntries] = useState<HabitEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getEntries().then((data) => {
-      setEntries(data);
-      setLoading(false);
-    });
-  }, []);
+  const { entries, loading } = useHabits();
 
   const stats = calculateStats(entries);
 

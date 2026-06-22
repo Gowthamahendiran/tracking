@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "../components/Sidebar";
 import { cookies } from "next/headers";
 import { HabitProvider } from "@/context/HabitContext";
+import AppLayoutWrapper from "@/components/AppLayoutWrapper";
 
 export const metadata: Metadata = {
   title: "SPOWER",
@@ -34,12 +34,7 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <HabitProvider>
-          <div className="app-container">
-            <Sidebar />
-            <main className="main-content">
-              {children}
-            </main>
-          </div>
+          <AppLayoutWrapper>{children}</AppLayoutWrapper>
         </HabitProvider>
       </body>
     </html>
